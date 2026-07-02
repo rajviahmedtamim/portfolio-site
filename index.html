@@ -167,7 +167,7 @@ a{color:inherit;text-decoration:none}
 .hero .pitch{position:absolute;right:6vw;bottom:18vh;max-width:330px}
 .hero .pitch p{font-size:clamp(18px,1.5vw,26px);line-height:1.22;letter-spacing:-.01em}
 .scroll-cue{position:absolute;left:6vw;bottom:40px;font-family:var(--serif);font-style:italic;font-size:17px;color:var(--mut);display:flex;align-items:center;gap:12px}
-.scroll-cue .ln{width:1px;height:32px;background:#9b9b99;transform-origin:top;animation:cue 2.2s ease-in-out infinite}
+.scroll-cue .ln{width:1px;height:32px;background:var(--red);transform-origin:top;animation:cue 2.2s ease-in-out infinite}
 @keyframes cue{0%,100%{transform:scaleY(.35);opacity:.4}50%{transform:scaleY(1);opacity:1}}
 
 /* ABOUT */
@@ -212,7 +212,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset
 
 <!-- Depth is DOM order: each cloud sits BETWEEN the ridge planes so mist
      drifts through the gaps, not over the whole scene. -->
-<div class="backdrop" id="backdrop" aria-hidden="true">
+<div class="backdrop" aria-hidden="true">
   <div class="sky"></div>
 
   <div class="peak peak-bg" style="background-image:url('assets/background.webp')"></div>
@@ -220,7 +220,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset
 
   <div class="peak peak-mid" style="background-image:url('assets/peaks_MIDDLE.webp')"></div>
   <img class="cloud cloud-mid" src="assets/cloud.webp" alt="">
-  <img class="cloud cloud-mid cloud-mid-2" src="assets/cloud.webp" alt="">
+  <img class="cloud cloud-mid-2" src="assets/cloud.webp" alt="">
 
   <!-- front ridge = crisp masked composite: alpha cuts the sky, photo is the
        surface, bump deepens the rock relief -->
@@ -234,8 +234,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset
   <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter>
   <rect width="100%" height="100%" filter="url(#n)"/>
 </svg>
-
-
 
 <nav class="dots" id="dots" aria-label="Sections"></nav>
 
@@ -398,44 +396,6 @@ window.addEventListener('load', ()=>{
   try{ initScene(); }catch(e){ console.warn('scene failed', e); }
   try{ initMotion(); }catch(e){ console.warn('motion failed', e); }
 });
-</script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
 </script>
 </body>
 </html>
