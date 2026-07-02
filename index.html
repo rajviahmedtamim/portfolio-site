@@ -1,0 +1,441 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rezvi Ahmed — Software Engineer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e9e9e7'/%3E%3Cpath d='M4 25 13 9l6 9 3-4 6 11z' fill='%232b2b2b'/%3E%3Cpath d='M13 9l4 7-2.6 2.6L10 16z' fill='%23e41613'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#e9e9e7">
+<meta name="description" content="Rezvi Ahmed — full-stack software engineer. Frontend-led, shipping polished web products including production Web3 apps.">
+<meta property="og:title" content="Rezvi Ahmed — Software Engineer">
+<meta property="og:description" content="Frontend-led engineer who ships fast, polished web products — including real Web3 apps in production.">
+<meta property="og:type" content="website">
+
+<!--
+  ============================================================
+  REZVI AHMED — PORTFOLIO
+  ------------------------------------------------------------
+  Stack: layered photo parallax (CSS) + GSAP/ScrollTrigger.
+  Each section is a full-screen CARD; they reveal one-by-one on scroll.
+
+  BACKDROP: four stacked panoramas in assets/ form a depth scene —
+         background (far haze) < peaks_MIDDLE < peaks_FRONT (near, sharp).
+         Clouds are interleaved BETWEEN the ridges so mist drifts through
+         the gaps. Layers parallax on scroll and mouse; nearer = more.
+         The front ridge is a composite: peaks_FRONT_alpha masks the sky
+         out (luminance mask), peaks_FRONT is the surface, peaks_FRONT_bump
+         deepens the rock relief.
+
+  MAKE IT YOURS — search for  EDIT:  to find content to change.
+         To swap the scenery, replace the images in assets/ (keep matching
+         dimensions so the front photo/alpha/bump stay aligned).
+
+  FONTS: PP Fragment Serif + PP Neue Montreal are paid (Pangram Pangram).
+         Uncomment the @font-face blocks and add the files to use them;
+         until then it falls back to Times New Roman / Helvetica as specced.
+  ============================================================
+-->
+
+<style>
+/* ---- YOUR FONTS (uncomment when you have the files) -----------
+@font-face{font-family:"PP Fragment Serif";src:url("fonts/PPFragment-Serif.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"PP Neue Montreal";src:url("fonts/PPNeueMontreal-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"PP Neue Montreal";src:url("fonts/PPNeueMontreal-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+---------------------------------------------------------------- */
+
+:root{
+  --ink:#2b2b2b;
+  --red:#e41613;
+  --paper:#e9e9e7;
+  --mut:#797977;
+  --line:#cdcdcb;
+  --serif:"PP Fragment Serif","Times New Roman",serif;
+  --sans:"PP Neue Montreal","Helvetica","Arial",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+html{ scroll-snap-type:y mandatory; scroll-behavior:smooth; }
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+
+/* ---------- LAYERED MOUNTAIN BACKDROP ---------- */
+.backdrop{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.backdrop .sky{position:absolute;inset:0;background:linear-gradient(180deg,#f6f6f4 0%,#efefed 42%,#e6e6e4 100%)}
+
+/* each ridge is a full-width panorama pinned to the bottom, sharing one ground plane.
+   scale/opacity/blur all grade front→back for atmospheric perspective. */
+.peak{
+  position:absolute;left:-6%;right:-6%;bottom:0;height:100vh;
+  background-repeat:no-repeat;background-position:bottom center;
+  will-change:transform;
+}
+/* far haze — no alpha in the file, so multiply drops its whitish sky.
+   feathered at top + both sides (intersect of two gradients) so the photo's
+   rectangular frame never seams; the bottom stays solid as the ground plane. */
+.peak-bg   {
+  background-size:72% auto; opacity:.4; filter:blur(3px); mix-blend-mode:multiply;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 16%,#000 84%,transparent),
+                     linear-gradient(to top,#000 22%,transparent 94%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(to right,transparent,#000 16%,#000 84%,transparent),
+             linear-gradient(to top,#000 22%,transparent 94%);
+  mask-composite:intersect;
+}
+/* mid ridge — the webp already has a clean alpha cutout, so no blend needed */
+.peak-mid  {background-size:95% auto; opacity:.72; filter:blur(1px)}
+
+/* front ridge = crisp composite. the alpha image is a B/W mask (white=rock),
+   applied as a LUMINANCE mask so the sky is cut cleanly with no grain halo.
+   mask size/position must match the children's background sizing to align. */
+.peak-front{
+  background-size:122% auto; opacity:1;
+  -webkit-mask-image:url('assets/peaks_FRONT_alpha.webp');
+          mask-image:url('assets/peaks_FRONT_alpha.webp');
+  -webkit-mask-mode:luminance;        mask-mode:luminance;
+  -webkit-mask-repeat:no-repeat;      mask-repeat:no-repeat;
+  -webkit-mask-position:bottom center; mask-position:bottom center;
+  -webkit-mask-size:122% auto;        mask-size:122% auto;
+}
+.peak-front .fx{
+  position:absolute;inset:0;
+  background-repeat:no-repeat;background-position:bottom center;background-size:122% auto;
+}
+.peak-front .tex {background-image:url('assets/peaks_FRONT.webp')}
+.peak-front .bump{background-image:url('assets/peaks_FRONT_bump.webp');mix-blend-mode:multiply;opacity:.35}
+
+/* soft clouds drifting BETWEEN the ridges = mist. transparent white puffs,
+   so opacity climbs with proximity; near clouds are larger and less blurred. */
+.cloud{
+  position:absolute;pointer-events:none;will-change:transform;
+  /* feather the puff's own frame so no rectangular edge shows over open sky */
+  -webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 50%,#000 40%,transparent 78%);
+          mask-image:radial-gradient(ellipse 60% 60% at 50% 50%,#000 40%,transparent 78%);
+}
+.cloud-bg   {top:30vh;left:-6vw; width:48vw;max-width:700px; opacity:.34; filter:blur(3px)}
+.cloud-mid  {top:48vh;left:34vw; width:60vw;max-width:880px; opacity:.5;  filter:blur(2px)}
+.cloud-mid-2{top:40vh;left:6vw;  width:40vw;max-width:600px; opacity:.4;  filter:blur(2px)}
+.cloud-front{top:56vh;left:52vw; width:66vw;max-width:960px; opacity:.62; filter:blur(1.5px)}
+
+/* portrait: width-relative ridge sizing would shrink the peaks to a sliver,
+   so anchor them to height and let the panorama overflow the sides instead. */
+@media(max-width:720px){
+  .peak{left:-30%;right:-30%}
+  .peak-bg{background-size:auto 32vh}
+  .peak-mid{background-size:auto 40vh}
+  .peak-front,.peak-front .fx{background-size:auto 52vh}
+  .peak-front{-webkit-mask-size:auto 52vh;mask-size:auto 52vh}
+  .cloud{filter:blur(2px)}
+}
+
+.grain{position:fixed;inset:-50%;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:multiply}
+
+/* ---------- DOTS ---------- */
+.dots{
+  position:fixed;top:50%;right:34px;transform:translateY(-50%);z-index:20;
+  display:flex;flex-direction:column;gap:14px;mix-blend-mode:multiply;
+}
+.dots button{width:8px;height:8px;border:0;border-radius:50%;background:#b6b6b4;cursor:pointer;padding:0;transition:.3s}
+.dots button.on{background:var(--ink);transform:scale(1.35)}
+@media(max-width:720px){.dots{display:none}}
+
+/* ---------- CARDS ---------- */
+.card{
+  position:relative;z-index:5;
+  min-height:100vh;width:100%;
+  scroll-snap-align:start;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 6vw;
+}
+.eyebrow{
+  font-family:var(--serif);font-style:italic;font-size:18px;color:var(--red);
+  display:flex;align-items:center;gap:14px;margin-bottom:28px;
+}
+.eyebrow::before{content:"";width:36px;height:1px;background:var(--red)}
+
+/* HERO */
+.hero{justify-content:flex-start;padding-top:15vh;align-items:flex-start}
+.hero .reveal{display:flex;flex-direction:column;justify-content:flex-start;max-width:50vw}
+.hero h1{font-family:var(--sans);font-weight:500;font-size:clamp(64px,13vw,220px);line-height:.88;letter-spacing:-.03em}
+.hero .role{font-family:var(--serif);font-style:italic;font-size:clamp(22px,3vw,40px);color:var(--ink);margin-top:14px}
+.hero .pitch{position:absolute;right:6vw;bottom:18vh;max-width:330px}
+.hero .pitch p{font-size:clamp(18px,1.5vw,26px);line-height:1.22;letter-spacing:-.01em}
+.scroll-cue{position:absolute;left:6vw;bottom:40px;font-family:var(--serif);font-style:italic;font-size:17px;color:var(--mut);display:flex;align-items:center;gap:12px}
+.scroll-cue .ln{width:1px;height:32px;background:#9b9b99;transform-origin:top;animation:cue 2.2s ease-in-out infinite}
+@keyframes cue{0%,100%{transform:scaleY(.35);opacity:.4}50%{transform:scaleY(1);opacity:1}}
+
+/* ABOUT */
+.about .big{font-family:var(--sans);font-weight:500;font-size:clamp(26px,3.6vw,58px);line-height:1.14;letter-spacing:-.02em;max-width:19ch}
+.about .em{font-family:var(--serif);font-style:italic;font-weight:400}
+.about .edu{margin-top:46px;font-size:16px;color:var(--mut);max-width:46ch;line-height:1.5}
+.about .edu strong{color:var(--ink);font-weight:500}
+
+/* EXPERIENCE */
+.exp .rows{border-top:1px solid var(--line);max-width:1100px}
+.exp .row{display:grid;grid-template-columns:13ch 1fr auto;gap:28px;align-items:baseline;padding:34px 0;border-bottom:1px solid var(--line);transition:padding .3s}
+.exp .row:hover{padding-left:14px}
+.exp .row .when{font-size:14px;color:var(--mut);letter-spacing:.03em}
+.exp .row .what{font-family:var(--sans);font-weight:500;font-size:clamp(26px,3.6vw,52px);line-height:1;letter-spacing:-.02em;transition:color .3s}
+.exp .row:hover .what{color:var(--red)}
+.exp .row .at{display:block;font-size:15px;color:var(--mut);margin-top:8px;letter-spacing:.02em}
+.exp .row .note{font-size:15px;color:#5d5d5b;text-align:right;max-width:30ch;line-height:1.4}
+@media(max-width:760px){.exp .row{grid-template-columns:1fr;gap:8px}.exp .row .note{text-align:left}}
+
+/* SKILLS */
+.skills .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:46px 40px;max-width:1100px;margin-top:8px}
+.skills h3{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--red);margin-bottom:16px}
+.skills ul{list-style:none}
+.skills li{font-size:clamp(18px,1.5vw,24px);line-height:1.7;color:var(--ink);letter-spacing:-.01em}
+
+/* CONTACT */
+.contact h2{font-family:var(--sans);font-weight:500;font-size:clamp(48px,10vw,170px);line-height:.88;letter-spacing:-.03em}
+.contact .mail{display:inline-block;margin-top:22px;font-size:clamp(22px,3vw,40px);border-bottom:2px solid var(--ink);padding-bottom:5px;transition:.25s}
+.contact .mail:hover{color:var(--red);border-color:var(--red)}
+.contact .links{margin-top:54px;display:flex;gap:32px;flex-wrap:wrap;font-size:16px;letter-spacing:.02em}
+.contact .links a{position:relative;padding-bottom:3px;color:#4a4a48;transition:.25s}
+.contact .links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--red);transition:.25s}
+.contact .links a:hover{color:var(--red)}
+.contact .links a:hover::after{width:100%}
+.contact .foot{margin-top:64px;font-size:13px;color:var(--mut);letter-spacing:.05em}
+
+a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset:4px;border-radius:2px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.scroll-cue .ln{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- Depth is DOM order: each cloud sits BETWEEN the ridge planes so mist
+     drifts through the gaps, not over the whole scene. -->
+<div class="backdrop" id="backdrop" aria-hidden="true">
+  <div class="sky"></div>
+
+  <div class="peak peak-bg" style="background-image:url('assets/background.webp')"></div>
+  <img class="cloud cloud-bg" src="assets/cloud.webp" alt="">
+
+  <div class="peak peak-mid" style="background-image:url('assets/peaks_MIDDLE.webp')"></div>
+  <img class="cloud cloud-mid" src="assets/cloud.webp" alt="">
+  <img class="cloud cloud-mid cloud-mid-2" src="assets/cloud.webp" alt="">
+
+  <!-- front ridge = crisp masked composite: alpha cuts the sky, photo is the
+       surface, bump deepens the rock relief -->
+  <div class="peak peak-front">
+    <div class="fx tex"></div>
+    <div class="fx bump"></div>
+  </div>
+  <img class="cloud cloud-front" src="assets/cloud.webp" alt="">
+</div>
+<svg class="grain" xmlns="http://www.w3.org/2000/svg">
+  <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter>
+  <rect width="100%" height="100%" filter="url(#n)"/>
+</svg>
+
+
+
+<nav class="dots" id="dots" aria-label="Sections"></nav>
+
+<!-- CARD 1 — HERO -->
+<section class="card hero" id="c0" data-label="Intro">
+  <div class="reveal">
+    <h1>Rezvi<br>Ahmed</h1>
+    <!-- EDIT: role -->
+    <div class="role">Full-stack software engineer</div>
+  </div>
+  <div class="pitch reveal">
+    <!-- EDIT: one-line pitch -->
+    <p>Frontend-led engineer who ships fast, polished web products — including real Web3 apps in production.</p>
+  </div>
+  <div class="scroll-cue"><span class="ln"></span> Scroll</div>
+</section>
+
+<!-- CARD 2 — ABOUT -->
+<section class="card about" id="c1" data-label="About">
+  <div class="eyebrow reveal">About</div>
+  <p class="big reveal">I build for the web end to end — <span class="em">frontend-first</span>, with a real eye for type, motion, and the details users feel but never name.</p>
+  <!-- EDIT: education -->
+  <p class="edu reveal"><strong>BSc in Software Engineering</strong> — Daffodil International University. Four years in industry shipping production frontends, with hands-on Web3 experience.</p>
+</section>
+
+<!-- CARD 3 — EXPERIENCE -->
+<section class="card exp" id="c2" data-label="Experience">
+  <div class="eyebrow reveal">Experience</div>
+  <div class="rows">
+    <!-- EDIT: roles -->
+    <div class="row reveal">
+      <span class="when">Nov 2022 — Jan 2026</span>
+      <span class="what">Frontend Developer<span class="at">Wind.app</span></span>
+      <span class="note">Built and shipped Web3 product interfaces — wallet flows, on-chain data, responsive dashboards.</span>
+    </div>
+    <div class="row reveal">
+      <span class="when">2026</span>
+      <span class="what">Frontend Developer<span class="at">Fin.com</span></span>
+      <span class="note">Frontend development on a fintech product team. Moved on in May 2026, open to what's next.</span>
+    </div>
+  </div>
+</section>
+
+<!-- CARD 4 — SKILLS -->
+<section class="card skills" id="c3" data-label="Skills">
+  <div class="eyebrow reveal">What I work with</div>
+  <!-- EDIT: adjust to match your real stack -->
+  <div class="grid">
+    <div class="reveal"><h3>Frontend</h3><ul><li>React</li><li>Next.js</li><li>TypeScript</li><li>Tailwind CSS</li></ul></div>
+    <div class="reveal"><h3>Backend</h3><ul><li>Node.js</li><li>Express</li><li>REST &amp; GraphQL</li><li>PostgreSQL</li></ul></div>
+    <div class="reveal"><h3>Web3</h3><ul><li>ethers.js</li><li>wagmi / viem</li><li>Wallet integrations</li><li>Smart-contract UIs</li></ul></div>
+    <div class="reveal"><h3>Craft</h3><ul><li>Motion &amp; GSAP</li><li>Three.js / WebGL</li><li>Git &amp; CI</li><li>Performance</li></ul></div>
+  </div>
+</section>
+
+<!-- CARD 5 — CONTACT -->
+<section class="card contact" id="c4" data-label="Contact">
+  <div class="eyebrow reveal">Get in touch</div>
+  <h2 class="reveal">Let's build<br>something.</h2>
+  <!-- EDIT: email + links -->
+  <a class="mail reveal" href="mailto:hello@rezviahmed.com">hello@rezviahmed.com</a>
+  <div class="links reveal">
+    <a href="#">GitHub</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">X / Twitter</a>
+    <a href="#">Resume</a>
+  </div>
+  <div class="foot reveal">© 2026 Rezvi Ahmed · Available for new work</div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+"use strict";
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ===== Layered mountain backdrop — scroll + mouse parallax ===== */
+function initScene(){
+  const front = document.querySelector('.peak-front');
+  if (!front) return;
+  if (REDUCED || typeof gsap === 'undefined') return;
+
+  /* clouds drift back and forth between the ridges. nearer clouds travel
+     faster and further; each starts at a different phase so they never sync. */
+  const cloudMotion = [
+    {sel:'.cloud-front', range:16, dur:24},
+    {sel:'.cloud-mid',   range:12, dur:34},
+    {sel:'.cloud-mid-2', range:11, dur:40},
+    {sel:'.cloud-bg',    range:8,  dur:48},
+  ];
+  cloudMotion.forEach((c,i)=>{
+    const el = document.querySelector(c.sel);
+    if (!el) return;
+    gsap.fromTo(el, {xPercent:-c.range}, {
+      xPercent:c.range, duration:c.dur, ease:'sine.inOut',
+      repeat:-1, yoyo:true, delay:i*-7
+    });
+  });
+
+  /* mouse parallax — nearer layers move more (quickTo = buttery, no jank).
+     clouds get the parallax of the ridge they sit against. */
+  const layers = [
+    {sel:'.peak-front', amt:26}, {sel:'.cloud-front', amt:30},
+    {sel:'.peak-mid',   amt:14}, {sel:'.cloud-mid',   amt:16}, {sel:'.cloud-mid-2', amt:15},
+    {sel:'.peak-bg',    amt:6},  {sel:'.cloud-bg',    amt:7},
+  ];
+  const mv = layers.map(l=>{
+    const el = document.querySelector(l.sel);
+    if (!el) return null;
+    return { setX: gsap.quickTo(el,'x',{duration:.9,ease:'power3'}),
+             setY: gsap.quickTo(el,'y',{duration:.9,ease:'power3'}), amt:l.amt };
+  }).filter(Boolean);
+  window.addEventListener('mousemove', e=>{
+    const dx = e.clientX/innerWidth - .5, dy = e.clientY/innerHeight - .5;
+    mv.forEach(l=>{ l.setX(dx*-l.amt); l.setY(dy*-l.amt*.4); });
+  }, {passive:true});
+}
+
+/* ===== GSAP — reveals, backdrop scrub, section dots ===== */
+function initMotion(){
+  const cards = Array.from(document.querySelectorAll('.card'));
+  const dots = document.getElementById('dots');
+  cards.forEach((card,i)=>{
+    const b=document.createElement('button');
+    b.setAttribute('aria-label', card.dataset.label||('Section '+(i+1)));
+    b.addEventListener('click', ()=> card.scrollIntoView({behavior: REDUCED?'auto':'smooth'}));
+    dots.appendChild(b);
+  });
+  const dotEls=Array.from(dots.children);
+  const setDot=i=>dotEls.forEach((d,j)=>d.classList.toggle('on', j===i));
+  setDot(0);
+  const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) setDot(cards.indexOf(e.target)); }), {threshold:0.5});
+  cards.forEach(c=>io.observe(c));
+
+  if (typeof gsap==='undefined' || typeof ScrollTrigger==='undefined') return;
+  gsap.registerPlugin(ScrollTrigger);
+  if (REDUCED) return;
+
+  /* scroll parallax: ridges sink & fade as you descend the page, opening the sky.
+     nearer layers travel further for a real sense of depth; clouds lift & thin out. */
+  const scrub = {trigger:'body', start:'top top', end:'bottom bottom', scrub:0.6};
+  gsap.to('.peak-front', {yPercent:26, scrollTrigger:scrub});
+  gsap.to('.peak-mid',   {yPercent:15, scrollTrigger:scrub});
+  gsap.to('.peak-bg',    {yPercent:7,  opacity:.22, scrollTrigger:scrub});
+  gsap.to('.cloud-front',{yPercent:-16,opacity:.1,  scrollTrigger:scrub});
+  gsap.to('.cloud-mid, .cloud-mid-2',{yPercent:-11,opacity:.12, scrollTrigger:scrub});
+  gsap.to('.cloud-bg',   {yPercent:-7, opacity:.1,  scrollTrigger:scrub});
+
+  cards.forEach(card=>{
+    const items=card.querySelectorAll('.reveal');
+    gsap.set(items,{opacity:0,y:46});
+    ScrollTrigger.create({ trigger:card, start:'top 65%',
+      onEnter:()=>gsap.to(items,{opacity:1,y:0,duration:1,ease:'power3.out',stagger:0.12}),
+      onLeaveBack:()=>gsap.to(items,{opacity:0,y:46,duration:0.4,ease:'power2.in'}) });
+  });
+}
+
+window.addEventListener('load', ()=>{
+  try{ initScene(); }catch(e){ console.warn('scene failed', e); }
+  try{ initMotion(); }catch(e){ console.warn('motion failed', e); }
+});
+</script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+</html>
